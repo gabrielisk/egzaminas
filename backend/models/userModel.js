@@ -1,0 +1,23 @@
+import mongoose from "mongoose";
+import bcrypt from "bcrypt";
+import validator from "validator";
+
+const userSchema = new mongoose.Schema({
+  email: { type: String, unique: true, required: true },
+  password: { type: String, required: true },
+});
+
+userSchema.statics.signup = async function (email, password) {
+  if (!email || !password) throw Error("Užpildykite visus laukus");
+  if (!validator.isEmail(email)) throw Error("Netinkamas el. paštas");
+  if (!validator.isStrongPassword(password))
+    throw Error("Slaptažodis per silpnas");
+
+  const exists = await this.findOne({ email });
+  if (exists) throw Error("Toks el.paštas jau naudojamas");
+
+  const hash = await bcrypt.hash(password, 10);
+  return this.create({ email, password: hash });
+};
+
+export default mongoose.model("User", userSchema);
