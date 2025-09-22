@@ -20,4 +20,13 @@ userSchema.statics.signup = async function (email, password) {
   return this.create({ email, password: hash });
 };
 
+userSchema.statics.login = async function (email, password) {
+  if (!email || !password) throw Error("Užpildykite visus laukus");
+  const user = await this.findOne({ email });
+  if (!user) throw Error("Neteisingas el. paštas arba slaptažodis");
+  const ok = await bcrypt.compare(password, user.password);
+  if (!ok) throw Error("Neteisingas el. paštas arba slaptažodis");
+  return user;
+};
+
 export default mongoose.model("User", userSchema);
