@@ -7,8 +7,8 @@ const equipmentSchema = new mongoose.Schema(
     images: { type: [String], default: [] },
     status: {
       type: String,
-      enum: ["juodrastis", "paskelbta"],
-      default: "juodrastis",
+      enum: ["Juodraštis", "Paskelbta"],
+      default: "Juodraštis",
     },
   },
   { timestamps: true }
