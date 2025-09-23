@@ -1,2 +1,3 @@
 # egzaminas
+
 Įrangos rezervacijos sistema.
