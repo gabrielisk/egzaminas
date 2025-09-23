@@ -2,7 +2,7 @@ import Equipment from "../models/equipmentModel.js";
 
 export async function listEquipment(req, res) {
   try {
-    const items = await Equipment.find({ status: "paskelbta" }).sort({
+    const items = await Equipment.find({ status: "Paskelbta" }).sort({
       createdAt: -1,
     });
     res.json(items);
@@ -15,7 +15,7 @@ export async function getEquipmentById(req, res) {
   const { id } = req.params;
   try {
     const item = await Equipment.findById(id);
-    if (!item || item.status !== "paskelbta")
+    if (!item || item.status !== "Paskelbta")
       return res.status(404).json({ error: "Įranga nerasta" });
     res.json(item);
   } catch {
