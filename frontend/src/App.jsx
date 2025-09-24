@@ -4,10 +4,12 @@ import {
   Route,
   Navigate,
   useNavigate,
+  Link,
 } from "react-router-dom";
 import AuthProvider, { useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
 import "./App.css";
 
 function Protected({ children }) {
@@ -16,7 +18,45 @@ function Protected({ children }) {
 }
 
 function EquipmentListPage() {
-  return <div>Įrangos sąrašas </div>;
+  const [items, setItems] = useState([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/equipment")
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setError(data.error || "Klaida");
+          return;
+        }
+        setItems(data);
+      })
+      .catch(() => setError("Tinklo klaida"));
+  }, []);
+
+  if (error) return <p className="error">{error}</p>;
+  if (!items.length) return <p>Įrangos nėra.</p>;
+
+  return (
+    <>
+      <ul className="cards">
+        {items.map((item) => (
+          <li className="card" key={item._id}>
+            <Link to={`/equipment/${item._id}`}>
+              {item.images?.[0] ? (
+                <img src={item.images[0]} alt={item.title} />
+              ) : (
+                <div>
+                  <img src="https://placehold.co/220x200"></img>
+                </div>
+              )}
+              <h4>{item.title}</h4>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
 }
 function EquipmentDetailPage() {
   return <div>Įrangos detalė </div>;
@@ -67,7 +107,7 @@ function LoginPage() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      {error && <div className="error">{error}</div>}
       <button type="submit">Prisijungti</button>
     </form>
   );
@@ -118,7 +158,7 @@ function SignupPage() {
         onChange={(e) => setPassword(e.target.value)}
         required
       />
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      {error && <div className="error">{error}</div>}
       <button type="submit">Registruotis</button>
     </form>
   );
@@ -129,7 +169,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
-        <div>
+        <div className="main">
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
