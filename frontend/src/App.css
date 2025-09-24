@@ -1,0 +1,42 @@
+* {
+  box-sizing: border-box;
+}
+
+h3 {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 700;
+}
+
+form {
+  max-width: 420px;
+  margin: 100px auto;
+}
+form input,
+form select,
+form textarea {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-family: "Montserrat", sans-serif;
+  display: block;
+}
+form button {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+  font-family: "Montserrat", sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease;
+  display: block;
+}
+form button:hover {
+  background: #fff;
+  color: #2563eb;
+  border-color: #2563eb;
+}
