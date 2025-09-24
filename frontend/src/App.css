@@ -89,3 +89,55 @@ form button:hover {
   font-family: "Montserrat", sans-serif;
   color: #fff;
 }
+
+.atgal {
+  box-sizing: border-box;
+  background-color: blue;
+  border: none;
+  padding: 15px 25px;
+  color: #fff;
+  font-family: "Montserrat", sans-serif;
+  cursor: pointer;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.atgal:hover {
+  box-sizing: border-box;
+  background-color: #fff;
+  padding: 15px 25px;
+  color: blue;
+  font-family: "Montserrat", sans-serif;
+  transition: ease 0.3s;
+  border: 1px solid blue;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.detail h2 {
+  font-family: "Montserrat", sans-serif;
+  color: blue;
+}
+
+.success {
+  color: #16a34a;
+  margin: 10px 0;
+  text-align: center;
+  font-family: "Montserrat", sans-serif;
+}
+
+.detail-img {
+  display: block;
+  text-align: center;
+  margin: 0 auto;
+  max-width: 500px;
+  width: 100%;
+  height: 240px;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  margin: 8px 0;
+}
