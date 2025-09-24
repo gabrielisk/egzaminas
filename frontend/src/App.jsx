@@ -5,6 +5,7 @@ import {
   Navigate,
   useNavigate,
   Link,
+  useParams,
 } from "react-router-dom";
 import AuthProvider, { useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
@@ -59,7 +60,99 @@ function EquipmentListPage() {
   );
 }
 function EquipmentDetailPage() {
-  return <div>Įrangos detalė </div>;
+  const { id } = useParams();
+  const { user } = useAuth();
+
+  const [item, setItem] = useState(null);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+
+  useEffect(() => {
+    setError("");
+    setSuccess("");
+    setItem(null);
+
+    fetch(`/api/equipment/${id}`)
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setError(data.error || "Klaida");
+          return;
+        }
+        setItem(data);
+      })
+      .catch(() => setError("Tinklo klaida"));
+  }, [id]);
+
+  const onReserve = (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    fetch("/api/reservations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.token}`,
+      },
+      body: JSON.stringify({
+        equipmentId: id,
+        start: new Date(start).toISOString(),
+        end: new Date(end).toISOString(),
+      }),
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setError(data.error || "Klaida");
+          return;
+        }
+        setSuccess("Rezervacija sukurta");
+        setStart("");
+        setEnd("");
+      })
+      .catch(() => setError("Tinklo klaida"));
+  };
+
+  if (error && !item) return <p className="error">{error}</p>;
+  if (!item) return null;
+
+  return (
+    <div>
+      <p>
+        <Link to="/equipment" className="atgal">
+          Atgal
+        </Link>
+      </p>
+
+      <div className="detail">
+        <h2>{item.title}</h2>
+        {item.images?.[0] && (
+          <img className="detail-img" src={item.images[0]} alt={item.title} />
+        )}
+        {item.description && <p>{item.description}</p>}
+        {success && <div className="success">{success}</div>}
+      </div>
+      <form onSubmit={onReserve}>
+        <input
+          type="datetime-local"
+          value={start}
+          onChange={(e) => setStart(e.target.value)}
+          required
+        />
+        <input
+          type="datetime-local"
+          value={end}
+          onChange={(e) => setEnd(e.target.value)}
+          required
+        />
+        {error && <div className="error">{error}</div>}
+        <button type="submit">Rezervuoti</button>
+      </form>
+    </div>
+  );
 }
 function MyReservationsPage() {
   return <div>Mano rezervacijos </div>;
