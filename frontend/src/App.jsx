@@ -18,6 +18,11 @@ function Protected({ children }) {
   return user ? children : <Navigate to="/login" replace />;
 }
 
+function AdminOnly({ children }) {
+  const { user } = useAuth();
+  return user?.isAdmin ? children : <Navigate to="/equipment" replace />;
+}
+
 function EquipmentListPage() {
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
@@ -364,6 +369,406 @@ function MyReservationsPage() {
   );
 }
 
+function AdminEquipmentPage() {
+  const { user } = useAuth();
+
+  const [items, setItems] = useState([]);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const [newTitle, setNewTitle] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [newImage, setNewImage] = useState("");
+  const [newStatus, setNewStatus] = useState("Juodraštis");
+
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editImage, setEditImage] = useState("");
+
+  useEffect(() => {
+    setError("");
+    setSuccess("");
+    fetch("/api/equipment-admin", {
+      headers: { Authorization: `Bearer ${user.token}` },
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setError(data.error || "Klaida");
+          return;
+        }
+        setItems(data);
+      })
+      .catch(() => setError("Tinklo klaida"));
+  }, [user]);
+
+  function clearMessages() {
+    setError("");
+    setSuccess("");
+  }
+
+  function onCreate(e) {
+    e.preventDefault();
+    clearMessages();
+
+    const body = {
+      title: newTitle,
+      description: newDescription,
+      images: newImage ? [newImage] : [],
+      status: newStatus,
+    };
+
+    fetch("/api/equipment-admin", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.token}`,
+      },
+      body: JSON.stringify(body),
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setError(data.error || "Klaida");
+          return;
+        }
+        setItems((cur) => [data, ...cur]);
+        setSuccess("Įranga sukurta");
+        setNewTitle("");
+        setNewDescription("");
+        setNewImage("");
+        setNewStatus("Juodraštis");
+      })
+      .catch(() => setError("Tinklo klaida"));
+  }
+
+  function startEdit(item) {
+    setEditingId(item._id);
+    setEditTitle(item.title || "");
+    setEditDescription(item.description || "");
+    setEditImage(item.images?.[0] || "");
+    setSuccess("");
+    setError("");
+  }
+
+  function saveEdit(id) {
+    clearMessages();
+    const body = {
+      title: editTitle,
+      description: editDescription,
+      images: editImage ? [editImage] : [],
+    };
+    fetch(`/api/equipment-admin/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.token}`,
+      },
+      body: JSON.stringify({
+        title: editTitle,
+        description: editDescription,
+        images: editImage.trim() ? [editImage.trim()] : [],
+      }),
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setError(data.error || "Klaida");
+          return;
+        }
+        setItems((cur) => cur.map((x) => (x._id === id ? data : x)));
+        setEditingId(null);
+        setSuccess("Įranga atnaujinta");
+      })
+      .catch(() => setError("Tinklo klaida"));
+  }
+
+  function removeItem(id) {
+    clearMessages();
+    fetch(`/api/equipment-admin/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${user.token}` },
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setError(data.error || "Klaida");
+          return;
+        }
+        setItems((cur) => cur.filter((x) => x._id !== id));
+        setSuccess("Įranga ištrinta");
+      })
+      .catch(() => setError("Tinklo klaida"));
+  }
+
+  function toggleStatus(item) {
+    clearMessages();
+    const naujaBusena =
+      item.status === "Paskelbta" ? "Juodraštis" : "Paskelbta";
+    fetch(`/api/equipment-admin/${item._id}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.token}`,
+      },
+      body: JSON.stringify({ status: naujaBusena }),
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setError(data.error || "Klaida");
+          return;
+        }
+        setItems((cur) => cur.map((x) => (x._id === item._id ? data : x)));
+        setSuccess(`Būsena pakeista: ${naujaBusena}`);
+      })
+      .catch(() => setError("Tinklo klaida"));
+  }
+
+  return (
+    <div className="admin">
+      <h2>Admin: Įranga</h2>
+      {error && <div className="error">{error}</div>}
+      {success && <div className="success">{success}</div>}
+
+      <form onSubmit={onCreate}>
+        <h3>Sukurti įrangą</h3>
+        <input
+          placeholder="Pavadinimas"
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          required
+        />
+        <input
+          placeholder="Aprašymas"
+          value={newDescription}
+          onChange={(e) => setNewDescription(e.target.value)}
+        />
+        <input
+          placeholder="Nuotraukos URL"
+          value={newImage}
+          onChange={(e) => setNewImage(e.target.value)}
+        />
+        <select
+          value={newStatus}
+          onChange={(e) => setNewStatus(e.target.value)}
+        >
+          <option>Juodraštis</option>
+          <option>Paskelbta</option>
+        </select>
+        <button type="submit">Sukurti</button>
+      </form>
+
+      <ul className="admin-list">
+        {items.map((iranga) => (
+          <li className="admin-item" key={iranga._id}>
+            {editingId === iranga._id ? (
+              <div className="admin-item-main">
+                <input
+                  placeholder="Pavadinimas"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                />
+                <input
+                  placeholder="Aprašymas"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                />
+                <input
+                  placeholder="Nuotraukos URL"
+                  value={editImage}
+                  onChange={(e) => setEditImage(e.target.value)}
+                />
+              </div>
+            ) : (
+              <div className="admin-item-main">
+                <strong>{iranga.title}</strong>
+                <p>{iranga.description}</p>
+                <div
+                  className={`badge ${
+                    iranga.status === "Paskelbta"
+                      ? "badge-paskelbta"
+                      : "badge-juodrastis"
+                  }`}
+                >
+                  {iranga.status}
+                </div>
+                {iranga.images?.[0] && <small>{iranga.images[0]}</small>}
+              </div>
+            )}
+
+            <div className="admin-actions">
+              {editingId === iranga._id ? (
+                <>
+                  <button
+                    className="btn-redaguoti"
+                    onClick={() => saveEdit(iranga._id)}
+                  >
+                    Išsaugoti
+                  </button>
+                  <button
+                    className="btn-juodrastis"
+                    onClick={() => setEditingId(null)}
+                  >
+                    Atšaukti
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="btn-redaguoti"
+                    onClick={() => startEdit(iranga)}
+                  >
+                    Redaguoti
+                  </button>
+                  <button
+                    className="btn-istrinti"
+                    onClick={() => removeItem(iranga._id)}
+                  >
+                    Ištrinti
+                  </button>
+                  <button
+                    className="btn-juodrastis"
+                    onClick={() => toggleStatus(iranga)}
+                  >
+                    {iranga.status === "Paskelbta"
+                      ? "Padaryti juodraščiu"
+                      : "Paskelbti"}
+                  </button>
+                </>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function AdminReservationsPage() {
+  const { user } = useAuth();
+  const [items, setItems] = useState([]);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    setError("");
+    setSuccess("");
+
+    Promise.all([
+      fetch("/api/reservations-admin", {
+        headers: { Authorization: `Bearer ${user.token}` },
+      }).then((res) => res.json().then((data) => ({ ok: res.ok, data }))),
+
+      fetch("/api/equipment-admin", {
+        headers: { Authorization: `Bearer ${user.token}` },
+      }).then((res) => res.json().then((data) => ({ ok: res.ok, data }))),
+    ])
+      .then(([rez, eq]) => {
+        if (!rez.ok) {
+          setError(rez.data.error || "Klaida");
+          return;
+        }
+        if (!eq.ok) {
+          setError(eq.data.error || "Klaida (įrangos sąrašas)");
+          return;
+        }
+
+        const titleById = {};
+        eq.data.forEach((iranga) => {
+          titleById[iranga._id] = iranga.title;
+        });
+
+        const suPavadinimais = rez.data.map((rez) => {
+          const equipmentId =
+            typeof rez.equipment === "string"
+              ? rez.equipment
+              : rez.equipment?._id;
+
+          const irangosPavadinimas =
+            titleById[equipmentId] || "(Įranga nerasta)";
+          return { ...rez, irangosPavadinimas, naujasStatusas: rez.status };
+        });
+
+        setItems(suPavadinimais);
+      })
+      .catch(() => setError("Tinklo klaida"));
+  }, [user]);
+
+  function keistiLauka(rezId, reiksme) {
+    setItems((cur) =>
+      cur.map((r) => (r._id === rezId ? { ...r, naujasStatusas: reiksme } : r))
+    );
+  }
+
+  function issaugotiStatusa(rezId) {
+    setError("");
+    setSuccess("");
+    const pasirinkta = items.find((r) => r._id === rezId);
+    if (!pasirinkta) return;
+
+    fetch(`/api/reservations-admin/${rezId}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.token}`,
+      },
+      body: JSON.stringify({ status: pasirinkta.naujasStatusas }),
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setError(data.error || "Klaida");
+          return;
+        }
+        setItems((cur) =>
+          cur.map((r) => (r._id === rezId ? { ...r, status: data.status } : r))
+        );
+        setSuccess("Statusas atnaujintas");
+      })
+      .catch(() => setError("Tinklo klaida"));
+  }
+
+  return (
+    <div>
+      <h2>Admin: Rezervacijos</h2>
+      {error && <div className="error">{error}</div>}
+      {success && <div className="success">{success}</div>}
+
+      <ul className="admin-list">
+        {items.map((rez) => (
+          <li className="admin-item" key={rez._id}>
+            <div className="admin-item-main">
+              <strong>{rez.irangosPavadinimas}</strong>
+              <div>Nuo: {new Date(rez.start).toLocaleString("lt-LT")}</div>
+              <div>Iki: {new Date(rez.end).toLocaleString("lt-LT")}</div>
+              <div>Dabartinis: {rez.status}</div>
+            </div>
+            <div className="admin-actions">
+              <select
+                value={rez.naujasStatusas}
+                onChange={(e) => keistiLauka(rez._id, e.target.value)}
+              >
+                <option>Laukiama</option>
+                <option>Patvirtinta</option>
+                <option>Vykdoma</option>
+                <option>Atmesta</option>
+              </select>
+              <button
+                className="btn-redaguoti"
+                onClick={() => issaugotiStatusa(rez._id)}
+              >
+                Išsaugoti
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function LoginPage() {
   const { login } = useAuth();
   const nav = useNavigate();
@@ -385,7 +790,7 @@ function LoginPage() {
         setError(data.error || "Klaida");
         return;
       }
-      login({ email: data.email, token: data.token });
+      login({ email: data.email, token: data.token, isAdmin: data.isAdmin });
       nav("/equipment");
     } catch {
       setError("Tinklo klaida");
@@ -433,7 +838,7 @@ function SignupPage() {
         setError(data.error || "Klaida");
         return;
       }
-      login({ email: data.email, token: data.token });
+      login({ email: data.email, token: data.token, isAdmin: data.isAdmin });
       nav("/equipment");
     } catch {
       setError("Tinklo klaida");
@@ -493,6 +898,26 @@ export default function App() {
               element={
                 <Protected>
                   <MyReservationsPage />
+                </Protected>
+              }
+            />
+            <Route
+              path="/admin/iranga"
+              element={
+                <Protected>
+                  <AdminOnly>
+                    <AdminEquipmentPage />
+                  </AdminOnly>
+                </Protected>
+              }
+            />
+            <Route
+              path="/admin/rezervacijos"
+              element={
+                <Protected>
+                  <AdminOnly>
+                    <AdminReservationsPage />
+                  </AdminOnly>
                 </Protected>
               }
             />

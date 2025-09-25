@@ -11,6 +11,10 @@ export default function Navbar() {
         <div>
           <NavLink to="/equipment">Sąrašas</NavLink>
           <NavLink to="/reservations">Mano rezervacijos</NavLink>
+          {user?.isAdmin && <NavLink to="/admin/iranga">Admin</NavLink>}
+          {user?.isAdmin && (
+            <NavLink to="/admin/rezervacijos">Admin rezervacijos</NavLink>
+          )}
         </div>
         <Link to="/equipment">
           <h1>Įranga.lt</h1>
