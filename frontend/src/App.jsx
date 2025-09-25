@@ -155,7 +155,213 @@ function EquipmentDetailPage() {
   );
 }
 function MyReservationsPage() {
-  return <div>Mano rezervacijos </div>;
+  const { user } = useAuth();
+  const [rezervacijos, setRezervacijos] = useState([]);
+  const [klaida, setKlaida] = useState("");
+  const [sekme, setSekme] = useState("");
+
+  useEffect(() => {
+    setKlaida("");
+    setSekme("");
+
+    fetch("/api/reservations/me", {
+      headers: { Authorization: `Bearer ${user.token}` },
+    })
+      .then(async (res) => {
+        let duomenys = {};
+        try {
+          duomenys = await res.json();
+        } catch {}
+        return { ok: res.ok, duomenys };
+      })
+      .then(async ({ ok, duomenys }) => {
+        if (!ok) {
+          setKlaida(duomenys.error || "Klaida");
+          return;
+        }
+
+        const rezervacijosSuPavadinimu = await Promise.all(
+          duomenys.map(async (rez) => {
+            const irangosId =
+              typeof rez.equipment === "string"
+                ? rez.equipment
+                : rez.equipment?._id;
+
+            let irangosPavadinimas = "Įranga";
+            if (irangosId) {
+              try {
+                const ats = await fetch(`/api/equipment/${irangosId}`);
+                const iranga = await ats.json();
+                if (ats.ok && iranga?.title) irangosPavadinimas = iranga.title;
+              } catch {}
+            }
+
+            return {
+              ...rez,
+              irangosPavadinimas,
+              naujaPradzia: iLaikoIvesti(rez.start),
+              naujaPabaiga: iLaikoIvesti(rez.end),
+            };
+          })
+        );
+
+        setRezervacijos(rezervacijosSuPavadinimu);
+      })
+      .catch(() => setKlaida("Tinklo klaida"));
+  }, [user]);
+
+  function iLaikoIvesti(isoTekstas) {
+    const d = new Date(isoTekstas);
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(
+      d.getHours()
+    )}:${p(d.getMinutes())}`;
+  }
+
+  function rastiRezervacijaPagalId(sarasas, id) {
+    for (const item of sarasas) if (item._id === id) return item;
+    return null;
+  }
+
+  function keistiLauka(rezervacijosId, laukas, reiksme) {
+    setRezervacijos((dabartinis) =>
+      dabartinis.map((item) =>
+        item._id === rezervacijosId ? { ...item, [laukas]: reiksme } : item
+      )
+    );
+  }
+
+  function atnaujintiRezervacija(rezervacijosId) {
+    setKlaida("");
+    setSekme("");
+
+    const pasirinkta = rastiRezervacijaPagalId(rezervacijos, rezervacijosId);
+    if (!pasirinkta) return;
+
+    fetch(`/api/reservations/${rezervacijosId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.token}`,
+      },
+      body: JSON.stringify({
+        start: new Date(pasirinkta.naujaPradzia).toISOString(),
+        end: new Date(pasirinkta.naujaPabaiga).toISOString(),
+      }),
+    })
+      .then(async (res) => {
+        let duomenys = {};
+        try {
+          duomenys = await res.json();
+        } catch {}
+        return { ok: res.ok, duomenys };
+      })
+      .then(({ ok, duomenys }) => {
+        if (!ok) {
+          setKlaida(duomenys.error || "Klaida");
+          return;
+        }
+        setSekme("Rezervacija atnaujinta");
+
+        setRezervacijos((dabartinis) =>
+          dabartinis.map((item) =>
+            item._id === rezervacijosId
+              ? {
+                  ...item,
+                  start: duomenys.start,
+                  end: duomenys.end,
+                  naujaPradzia: iLaikoIvesti(duomenys.start),
+                  naujaPabaiga: iLaikoIvesti(duomenys.end),
+                }
+              : item
+          )
+        );
+      })
+      .catch(() => setKlaida("Tinklo klaida"));
+  }
+
+  function atsauktiRezervacija(rezervacijosId) {
+    setKlaida("");
+    setSekme("");
+
+    fetch(`/api/reservations/${rezervacijosId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${user.token}` },
+    })
+      .then(async (res) => {
+        let duomenys = {};
+        try {
+          duomenys = await res.json();
+        } catch {}
+        return { ok: res.ok, duomenys };
+      })
+      .then(({ ok, duomenys }) => {
+        if (!ok) {
+          setKlaida(duomenys.error || "Klaida");
+          return;
+        }
+        setSekme("Rezervacija atšaukta");
+        setRezervacijos((dabartinis) =>
+          dabartinis.filter((item) => item._id !== rezervacijosId)
+        );
+      })
+      .catch(() => setKlaida("Tinklo klaida"));
+  }
+
+  return (
+    <div>
+      <h2>Mano rezervacijos</h2>
+      {klaida && <div className="error">{klaida}</div>}
+      {sekme && <div className="success">{sekme}</div>}
+
+      {rezervacijos.length === 0 ? (
+        <p>Rezervacijų nėra.</p>
+      ) : (
+        <ul className="rezervaciju-sarasas">
+          {rezervacijos.map((item) => (
+            <li key={item._id}>
+              <div>
+                <div>Įranga: {item.irangosPavadinimas}</div>
+                <div>Nuo: {new Date(item.start).toLocaleString("lt-LT")}</div>
+                <div>Iki: {new Date(item.end).toLocaleString("lt-LT")}</div>
+                <div>Statusas: {item.status}</div>
+              </div>
+
+              <div className="edit-line">
+                <input
+                  type="datetime-local"
+                  value={item.naujaPradzia}
+                  onChange={(e) =>
+                    keistiLauka(item._id, "naujaPradzia", e.target.value)
+                  }
+                />
+                <input
+                  type="datetime-local"
+                  value={item.naujaPabaiga}
+                  onChange={(e) =>
+                    keistiLauka(item._id, "naujaPabaiga", e.target.value)
+                  }
+                />
+                <button
+                  className="update"
+                  onClick={() => atnaujintiRezervacija(item._id)}
+                >
+                  Atnaujinti
+                </button>
+              </div>
+
+              <button
+                className="cancel"
+                onClick={() => atsauktiRezervacija(item._id)}
+              >
+                Atšaukti
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function LoginPage() {
