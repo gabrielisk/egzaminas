@@ -5,6 +5,7 @@ import userRoutes from "./routes/user.js";
 import equipmentRoutes from "./routes/equipment.js";
 import reservationsRoutes from "./routes/reservations.js";
 import equipmentAdminRoutes from "./routes/equipmentAdmin.js";
+import reservationsAdminRoutes from "./routes/reservationsAdmin.js";
 
 dotenv.config();
 
@@ -15,6 +16,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/equipment", equipmentRoutes);
 app.use("/api/reservations", reservationsRoutes);
 app.use("/api/equipment-admin", equipmentAdminRoutes);
+app.use("/api/reservations-admin", reservationsAdminRoutes);
 
 const PORT = process.env.PORT || 4000;
 
