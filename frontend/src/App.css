@@ -279,3 +279,82 @@ form button:hover {
 .btn-juodrastis:hover {
   background: #f9fafb;
 }
+
+@media (max-width: 768px) {
+  .main {
+    padding: 12px;
+  }
+
+  .cards {
+    gap: 10px;
+  }
+  .card {
+    width: 48%;
+  }
+
+  .card img {
+    height: 160px;
+  }
+
+  .detail-img {
+    max-width: 100%;
+    height: 210px;
+  }
+
+  .edit-line {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .update {
+    width: 100%;
+  }
+
+  .admin-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .admin-actions > * {
+    flex: 1 1 48%;
+  }
+
+  .badge {
+    width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: 10px;
+  }
+
+  .card {
+    width: 100%;
+  }
+  .card img {
+    height: 180px;
+  }
+
+  .atgal {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+  }
+
+  .detail-img {
+    height: auto;
+    max-height: 260px;
+  }
+
+  .admin-actions > * {
+    flex: 1 1 100%;
+  }
+
+  form {
+    margin: 32px auto;
+  }
+}
