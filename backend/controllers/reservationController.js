@@ -86,3 +86,58 @@ export async function cancelMyReservation(req, res) {
     return res.status(400).json({ error: "Neteisingas ID" });
   }
 }
+
+export async function updateMyReservation(req, res) {
+  const { id } = req.params;
+  const { start, end } = req.body;
+
+  try {
+    const manoRezervacija = await Reservation.findOne({
+      _id: id,
+      user: req.user._id,
+    });
+    if (!manoRezervacija) {
+      return res.status(404).json({ error: "Rezervacija nerasta" });
+    }
+
+    const naujaPradzia = new Date(start);
+    const naujaPabaiga = new Date(end);
+
+    if (isNaN(naujaPradzia) || isNaN(naujaPabaiga)) {
+      return res.status(400).json({ error: "Blogas datos formatas" });
+    }
+    if (naujaPradzia >= naujaPabaiga) {
+      return res.status(400).json({ error: "Pradžia turi būti prieš pabaigą" });
+    }
+    if (naujaPradzia < new Date()) {
+      return res.status(400).json({ error: "Negalima rezervuoti į praeitį" });
+    }
+
+    const kitosRezervacijos = await Reservation.find({
+      equipment: manoRezervacija.equipment,
+      _id: { $ne: manoRezervacija._id },
+      status: { $in: ["laukiama", "patvirtinta", "vykdoma"] },
+    });
+
+    for (const kitaRezervacija of kitosRezervacijos) {
+      const kitosRezervacijosPradzia = new Date(kitaRezervacija.start);
+      const kitosRezervacijosPabaiga = new Date(kitaRezervacija.end);
+
+      const persidengia =
+        kitosRezervacijosPradzia < naujaPabaiga &&
+        kitosRezervacijosPabaiga > naujaPradzia;
+
+      if (persidengia) {
+        return res.status(400).json({ error: "Pasirinktas laikas užimtas" });
+      }
+    }
+
+    manoRezervacija.start = naujaPradzia;
+    manoRezervacija.end = naujaPabaiga;
+    await manoRezervacija.save();
+
+    return res.json(manoRezervacija);
+  } catch {
+    return res.status(400).json({ error: "Nepavyko atnaujinti" });
+  }
+}
