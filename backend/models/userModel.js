@@ -2,10 +2,14 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import validator from "validator";
 
-const userSchema = new mongoose.Schema({
-  email: { type: String, unique: true, required: true },
-  password: { type: String, required: true },
-});
+const userSchema = new mongoose.Schema(
+  {
+    email: { type: String, unique: true, required: true },
+    password: { type: String, required: true },
+    isAdmin: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
 
 userSchema.statics.signup = async function (email, password) {
   if (!email || !password) throw Error("Užpildykite visus laukus");

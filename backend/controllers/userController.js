@@ -9,7 +9,7 @@ export const signupUser = async (req, res) => {
   try {
     const user = await User.signup(email, password);
     const token = createToken(user._id);
-    res.status(200).json({ email: user.email, token });
+    res.status(200).json({ email: user.email, token, isAdmin: user.isAdmin });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -20,7 +20,7 @@ export const loginUser = async (req, res) => {
   try {
     const user = await User.login(email, password);
     const token = createToken(user._id);
-    res.json({ email: user.email, token });
+    res.json({ email: user.email, token, isAdmin: user.isAdmin });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
